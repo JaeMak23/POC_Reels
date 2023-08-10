@@ -7,29 +7,26 @@ import android.provider.MediaStore
 import android.util.Log
 import java.io.File
 import java.io.FileOutputStream
-import com.arthenica.mobileffmpeg.Config
-import com.arthenica.mobileffmpeg.FFmpeg
 
-fun applyColorFilterAndSaveVideo(context: Context, videoUri: Uri) {
+/*fun applyColorFilterAndSaveVideo(context: Context, videoUri: Uri) {
     // Same as before...
 
     val inputVideoPath = videoUri.getRealPathFromURI(context)
     val outputVideoPath = "${context.externalCacheDir?.absolutePath}/output_video.mp4"
 
-
-    /*  val rc = FFmpeg.execute("-i $inputVideoPath -c:v libxvid $outputVideoPath")
+    *//*  val rc = FFmpeg.execute("-i $inputVideoPath -c:v libxvid $outputVideoPath")
       Log.i(
           "jjj",
           String.format(
               "${Config.TAG} :Command execution %s.",
               (if (rc == 0) "completed successfully" else "failed with rc=$rc")
           )
-      )*/
+      )*//*
 
-    /*  val ffmpegCommand = arrayOf(
+    *//*  val ffmpegCommand = arrayOf(
           "-i", inputVideoPath,
           outputVideoPath
-      )*/
+      )*//*
     val ffmpegCommand = arrayOf(
         "-i", inputVideoPath,
         "-vf", "colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131",
@@ -56,7 +53,7 @@ fun applyColorFilterAndSaveVideo(context: Context, videoUri: Uri) {
         Log.i("jjj", "Failed.")
         // Video processing failed
     }
-}
+}*/
 
 // Same as before...
 
@@ -77,9 +74,13 @@ fun saveVideoToStorage(context: Context, uri: Uri): File {
     // Get the file name from the URI.
     val fileName = uri.lastPathSegment ?: "video.mp4"
 
+    ll("file name : $fileName")
+
 
     // Create a file in the external storage directory with the specified file name.
     val file = File(context.getExternalFilesDir(Environment.DIRECTORY_MOVIES), fileName)
+
+    ll("file path : ${file.absolutePath}")
 
     // Create an input stream from the URI.
     val inputStream = context.contentResolver.openInputStream(uri)

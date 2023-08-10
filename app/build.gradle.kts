@@ -50,9 +50,12 @@ dependencies {
     implementation("androidx.navigation:navigation-ui-ktx:2.6.0")
 
     implementation("androidx.databinding:databinding-runtime:8.1.0")
-    implementation("com.arthenica:mobile-ffmpeg-full:4.4")
+  //  implementation("com.arthenica:mobile-ffmpeg-full:4.4")
+    implementation("com.writingminds:FFmpegAndroid:0.3.2")
+//    implementation("com.github.hiteshsondhi88.libffmpeg")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+
 }
