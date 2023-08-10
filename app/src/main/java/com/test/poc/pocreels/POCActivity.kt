@@ -1,5 +1,6 @@
 package com.test.poc.pocreels
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
@@ -16,8 +17,13 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.net.toUri
 import androidx.databinding.DataBindingUtil
+import com.github.hiteshsondhi88.libffmpeg.ExecuteBinaryResponseHandler
 import com.github.hiteshsondhi88.libffmpeg.FFmpeg
 import com.github.hiteshsondhi88.libffmpeg.FFmpegExecuteResponseHandler
+import com.github.hiteshsondhi88.libffmpeg.FFmpegLoadBinaryResponseHandler
+import com.github.hiteshsondhi88.libffmpeg.LoadBinaryResponseHandler
+import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegCommandAlreadyRunningException
+import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegNotSupportedException
 import com.test.poc.pocreels.databinding.ActivityPocBinding
 import com.test.poc.pocreels.utils.getRealPathFromURI
 import com.test.poc.pocreels.utils.ll
@@ -32,12 +38,15 @@ class POCActivity : AppCompatActivity() {
     // declaring a null variable for MediaController
     private var mediaControls: MediaController? = null
 
+    private lateinit var ffmpeg: FFmpeg
+
     private val PICK_VIDEO_REQUEST = 1
 
+    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ll("on create called..")
 
-      //  FFmpeg.getInstance(this) // Initialize FFmpeg
         // setContentView(R.layout.activity_poc)
 
         //  binding = ActivityMainBinding.inflate(layoutInflater)
@@ -45,6 +54,74 @@ class POCActivity : AppCompatActivity() {
         binding = DataBindingUtil.setContentView(this, R.layout.activity_poc)
         binding.activity = this
 
+        // Initialize FFmpeg
+
+        //  initialize()
+
+        ffmpeg = FFmpeg.getInstance(this).also {
+            ll("libraryFFmpegVersion :  ${it.libraryFFmpegVersion}")
+            ll("deviceFFmpegVersion :  ${it.deviceFFmpegVersion}")
+            ll("isFFmpegCommandRunning :  ${it.isFFmpegCommandRunning}")
+
+            binding.editText.setText(
+                "libraryFFmpegVersion :  ${it.libraryFFmpegVersion}\n" +
+                        "deviceFFmpegVersion :  ${it.deviceFFmpegVersion}\n" +
+                        "isFFmpegCommandRunning :  ${it.isFFmpegCommandRunning}"
+            )
+        }
+
+
+    }
+
+    fun initialize(input: String, output: String) {
+        val ffmpeg = FFmpeg.getInstance(this)
+        ffmpeg.loadBinary(object : FFmpegLoadBinaryResponseHandler {
+            override fun onFinish() {
+                Log.d("FFmpeg", "onFinish")
+            }
+
+            override fun onSuccess() {
+                Log.d("FFmpeg", "onSuccess")
+                val command = arrayOf("-i", input, "")
+                try {
+                    ffmpeg.execute(command, object : ExecuteBinaryResponseHandler() {
+                        override fun onSuccess(message: String?) {
+                            super.onSuccess(message)
+                            ll("onSuccess: " + message!!)
+                        }
+
+                        override fun onProgress(message: String?) {
+                            super.onProgress(message)
+                            ll("onProgress: " + message!!)
+                        }
+
+                        override fun onFailure(message: String?) {
+                            super.onFailure(message)
+                            ll("onFailure: " + message!!)
+                        }
+
+                        override fun onStart() {
+                            super.onStart()
+                            ll("onStart")
+                        }
+
+                        override fun onFinish() {
+                            super.onFinish()
+                            ll("onFinish")
+                        }
+                    })
+                } catch (e: FFmpegCommandAlreadyRunningException) {
+                    Log.e("jjj", "FFmpeg runs already")
+                }
+            }
+
+            override fun onFailure() {
+                Log.e("jjj", "onFailure")
+            }
+
+            override fun onStart() {
+            }
+        })
     }
 
     fun openGalleryForVideo() {
@@ -52,6 +129,7 @@ class POCActivity : AppCompatActivity() {
         startActivityForResult(intent, PICK_VIDEO_REQUEST)
     }
 
+    @SuppressLint("SetTextI18n")
     fun openFromRes() {
         // set the absolute path of the video file which is going to be played
         currentUri = Uri.parse("android.resource://" + packageName + "/" + R.raw.video_file)
@@ -98,8 +176,9 @@ class POCActivity : AppCompatActivity() {
 
     fun filterAndSave() {
         currentUri?.let {
-          //  applyColorFilterAndSaveVideo(this@POCActivity, it)
-            colorFilter()
+            //  applyColorFilterAndSaveVideo(this@POCActivity, it)
+            // colorFilter()
+
         } ?: {
             Toast.makeText(applicationContext, "Please select any file", Toast.LENGTH_SHORT)
         }
@@ -107,21 +186,23 @@ class POCActivity : AppCompatActivity() {
 
     fun save() {
         currentUri?.let {
-            val file = saveVideoToStorage(this@POCActivity, it)
-            ll("File after saving :\n -- <$file>\n -- <${file.absolutePath}>")
+            savedFile = saveVideoToStorage(this@POCActivity, it)
+            ll("File after saving :\n -- <$savedFile>\n -- <${savedFile?.absolutePath ?: ".."}>")
 
             // val outputVideoPath = "${externalCacheDir?.absolutePath}/output_video.mp4"
-           // val outputVideoPath = "${getExternalFilesDir(Environment.DIRECTORY_MOVIES)}/result"
+            // val outputVideoPath = "${getExternalFilesDir(Environment.DIRECTORY_MOVIES)}/result"
             val outputVideoPath = (getExternalFilesDir(Environment.DIRECTORY_MOVIES)?.absolutePath
-                ?:"files00" ) + "/result.mp4"
+                ?: "files00") + "/result.mp4"
 
             ll("output path : $outputVideoPath")
 
             val startTime = "00:00:10"  // Replace with your start time
             val endTime = "00:00:20"    // Replace with your end time
-           // val inputUri = "android.resource://com.example.app/raw/input_video"
+            // val inputUri = "android.resource://com.example.app/raw/input_video"
 
-             trimVideo(it.getRealPathFromURI(this),outputVideoPath,startTime,endTime)
+            //  trimVideo(it.getRealPathFromURI(this),outputVideoPath,startTime,endTime)
+            trimVideo(savedFile?.absolutePath!!, outputVideoPath, startTime, endTime)
+            // testVideo(savedFile?.absolutePath!!,outputVideoPath)
 
 
             /*val ffmpegCommand = arrayOf(
@@ -154,7 +235,13 @@ class POCActivity : AppCompatActivity() {
     }
 
     // Function to trim the video
-    private fun trimVideo(inputUri: String, outputFilePath: String, startTime: String, endTime: String) {
+    private fun trimVideo(
+        inputUri: String,
+        outputFilePath: String,
+        startTime: String,
+        endTime: String
+    ) {
+        ll("Trim video called...")
         val command = arrayOf(
             "-i", inputUri,
             "-ss", startTime,
@@ -163,9 +250,21 @@ class POCActivity : AppCompatActivity() {
             outputFilePath
         )
 
-        FFmpeg.getInstance(this).execute(command,object: FFmpegExecuteResponseHandler{
+        ll("libraryFFmpegVersion :  ${ffmpeg.libraryFFmpegVersion}")
+        ll("deviceFFmpegVersion :  ${ffmpeg.deviceFFmpegVersion}")
+        ll("isFFmpegCommandRunning :  ${ffmpeg.isFFmpegCommandRunning}")
+
+        val text = "${binding.editText.text.toString()}\n\nTrim called\n"
+
+        binding.editText.setText(
+            "$text libraryFFmpegVersion :  ${ffmpeg.libraryFFmpegVersion}\n" +
+                    "deviceFFmpegVersion :  ${ffmpeg.deviceFFmpegVersion}\n" +
+                    "isFFmpegCommandRunning :  ${ffmpeg.isFFmpegCommandRunning}"
+        )
+
+        ffmpeg.execute(command, object : FFmpegExecuteResponseHandler {
             override fun onStart() {
-              ll("onStart called")
+                ll("onStart called")
             }
 
             override fun onFinish() {
@@ -196,7 +295,39 @@ class POCActivity : AppCompatActivity() {
             outputFilePath
         )
 
-        FFmpeg.getInstance(this).execute(command,object: FFmpegExecuteResponseHandler{
+        FFmpeg.getInstance(this).execute(command, object : FFmpegExecuteResponseHandler {
+            override fun onStart() {
+                ll("onStart called")
+            }
+
+            override fun onFinish() {
+                ll("OnFinish called")
+            }
+
+            override fun onSuccess(message: String?) {
+                ll("OnSuccess called, message : $message")
+            }
+
+            override fun onProgress(message: String?) {
+                ll("OnProgress called, message : $message")
+            }
+
+            override fun onFailure(message: String?) {
+                ll("OnFailure called, message : $message")
+            }
+
+        })
+    }
+
+
+    private fun testVideo(inputUri: String, outputFilePath: String) {
+        val command = arrayOf(
+            "-i", inputUri,
+            "-c", "copy",
+            outputFilePath
+        )
+
+        FFmpeg.getInstance(this).execute(command, object : FFmpegExecuteResponseHandler {
             override fun onStart() {
                 ll("onStart called")
             }
@@ -221,14 +352,14 @@ class POCActivity : AppCompatActivity() {
     }
 
     // Example usage
-/*    private fun exampleUsage() {
-        val inputUri = "input_video_uri"
-        val outputFilePath = "output_video_path"
-        val startTime = "00:00:10"  // Replace with your start time
-        val endTime = "00:00:20"    // Replace with your end time
+    /*    private fun exampleUsage() {
+            val inputUri = "input_video_uri"
+            val outputFilePath = "output_video_path"
+            val startTime = "00:00:10"  // Replace with your start time
+            val endTime = "00:00:20"    // Replace with your end time
 
-        trimVideo(inputUri, outputFilePath, startTime, endTime)
-    }*/
+            trimVideo(inputUri, outputFilePath, startTime, endTime)
+        }*/
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)

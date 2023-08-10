@@ -103,4 +103,7 @@ fun saveVideoToStorage(context: Context, uri: Uri): File {
     return file
 }
 
-fun ll(msg: Any?) = Log.i("jjj", "$msg")
+fun ll(msg: Any?) {
+    Log.i("jjj", "$msg")
+
+}
